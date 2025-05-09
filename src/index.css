@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  /* Standardized form controls */
+  .form-input,
+  .form-select,
+  .form-textarea,
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="datetime-local"],
+  select,
+  textarea {
+    @apply h-10 px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 w-full;
+  }
+  
+  /* Input with icon */
+  .input-with-icon-left {
+    @apply pl-12;
+  }
+  
+  .input-with-icon-right {
+    @apply pr-12;
+  }
+
+  /* For all inputs with left icons, ensure proper padding */
+  input.pl-10, 
+  input.pl-12, 
+  input[type="text"].pl-10, 
+  input[type="text"].pl-12, 
+  input[type="search"].pl-10,
+  input[type="search"].pl-12,
+  input[type="email"].pl-10,
+  input[type="email"].pl-12,
+  input[type="number"].pl-10,
+  input[type="number"].pl-12 {
+    @apply pl-[35px]; /* Set fixed padding to prevent text overlapping icons */
+  }
+
+  /* Ensure label spacing */
+  .form-label,
+  label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+  }
+  
+  /* Improve spacing within form groups */
+  .form-group {
+    @apply mb-4;
+  }
+  
+  /* Error messages */
+  .form-error {
+    @apply mt-1 text-sm text-red-600;
+  }
+
+  /* Tooltip styles */
+  .tooltip {
+    @apply relative inline-block;
+  }
+
+  .tooltip .tooltiptext {
+    @apply invisible absolute z-10 p-2 text-xs text-center text-white bg-gray-900 rounded-md opacity-0 transition-opacity duration-300 w-48;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -24px;
+  }
+
+  .tooltip:hover .tooltiptext {
+    @apply visible opacity-100;
+  }
+
+  /* Arrow for tooltip */
+  .tooltip .tooltiptext::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #1f2937 transparent transparent transparent;
+  }
+
+  /* Fixed height containers for consistent sizing */
+  .fixed-height-input {
+    @apply h-10;
+  }
+  
+  .fixed-height-select-container {
+    @apply h-10;
+  }
+  
+  .fixed-height-content-container {
+    @apply min-h-[4rem] max-h-[4rem] overflow-y-auto;
+  }
+}
