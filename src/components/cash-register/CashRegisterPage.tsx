@@ -228,10 +228,9 @@ export function CashRegisterPage() {
   const isLoaded = !isLoading && !ordersLoading;
   const cashRegisterReady = isLoaded && currentRegister;
   const transactionHistory = Array.isArray(transactions) 
-    ? transactions
-        .filter(t => t.operation_type !== 'open' && t.operation_type !== 'close')
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    : [];
+  ? transactions
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  : [];
   
   // Calculate total by category for today
   const salesTotal = Array.isArray(movements) 
