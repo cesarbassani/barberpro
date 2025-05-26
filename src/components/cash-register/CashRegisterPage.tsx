@@ -334,7 +334,6 @@ export function CashRegisterPage() {
                       <RefreshCw className="h-4 w-4 mr-2" />
                       Atualizar
                     </button>
-                    // Adicione este botão temporário após o botão "Atualizar" no CashRegisterPage.tsx:
 
 <button
   onClick={async () => {
