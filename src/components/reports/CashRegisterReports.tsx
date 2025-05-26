@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useCashRegister } from '../../lib/cashRegisterStore';
+import { useCashRegisterStore } from '../../lib/cashRegisterStore';
 import { format, startOfMonth, endOfMonth, subMonths, addMonths, parseISO, isToday, isAfter, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
@@ -47,7 +47,7 @@ export function CashRegisterReports() {
     fetchCashRegisterHistory,
     fetchTransactionsByRegisterId,
     calculateDailyBalance
-  } = useCashRegister();
+  } = useCashRegisterStore();
   
   // Load initial data
   useEffect(() => {
@@ -292,6 +292,7 @@ export function CashRegisterReports() {
                 .print-section {
                   position: absolute;
                   left: 0;
+                
                   top: 0;
                   width: 100%;
                 }

@@ -13,7 +13,7 @@ import {
   Receipt,
   CheckCircle
 } from 'lucide-react';
-import { useCashRegister, recordSaleInCashRegister } from '../../lib/cashRegisterStore';
+import { useCashRegisterStore, recordSaleInCashRegister } from '../../lib/cashRegisterStore';
 import { useAuth } from '../../lib/auth';
 import { useOrders } from '../../lib/orders';
 import toast from 'react-hot-toast';
@@ -50,7 +50,7 @@ export function OrderPaymentModal({ order, onClose, onSuccess }: OrderPaymentMod
   const [defaultPaymentAmount, setDefaultPaymentAmount] = useState<number>(Number(order.total_amount || 0));
   const [paymentMethods, setPaymentMethods] = useState<{id: string, name: string, value: string}[]>([]);
   
-  const { currentRegister, processingTransactions } = useCashRegister();
+  const { currentRegister, processingTransactions } = useCashRegisterStore();
   const { updateOrderStatus } = useOrders();
   const { profile } = useAuth();
 
