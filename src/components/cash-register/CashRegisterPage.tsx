@@ -89,6 +89,14 @@ export function CashRegisterPage() {
     fetchHistoryFn();
   }, [fetchOrders]);
 
+  // Debug - adicione após o useEffect existente
+  useEffect(() => {
+    console.log('Current Register:', currentRegister);
+    console.log('Transactions:', transactions);
+    console.log('Movements:', movements);
+    console.log('Current Balance:', currentBalance);
+  }, [currentRegister, transactions, movements, currentBalance]);
+
   const handleOpenCashRegister = async (initialAmount: number) => {
     try {
       await useCashRegisterStore.getState().openCashRegister(initialAmount);
