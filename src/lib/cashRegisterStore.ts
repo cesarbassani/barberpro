@@ -87,66 +87,94 @@ export const useCashRegisterStore = create<CashRegisterState>((set, get) => ({
   error: null,
   processingTransactions: null,
 
-  fetchCurrentRegister: async () => {
-    set({ isLoading: true, error: null });
-    try {
-      // Buscar o caixa atual (aberto)
-      const { data: registers, error: registersError } = await supabase
-        .from('cash_registers')
-        .select(`
-          *,
-          opening_employee:profiles!opening_employee_id(full_name),
-          closing_employee:profiles!closing_employee_id(full_name)
-        `)
-        .eq('status', 'open')
-        .order('opened_at', { ascending: false })
-        .limit(1);
+  // No arquivo cashRegisterStore.ts, substitua a função fetchCurrentRegister por esta versão corrigida:
 
-      if (registersError) throw registersError;
+fetchCurrentRegister: async () => {
+  set({ isLoading: true, error: null });
+  try {
+    // Buscar o caixa atual (aberto)
+    const { data: registers, error: registersError } = await supabase
+      .from('cash_registers')
+      .select(`
+        *,
+        opening_employee:profiles!cash_registers_opening_employee_id_fkey(full_name),
+        closing_employee:profiles!cash_registers_closing_employee_id_fkey(full_name)
+      `)
+      .eq('status', 'open')
+      .order('opened_at', { ascending: false })
+      .limit(1);
 
-      const currentRegister = registers && registers.length > 0 ? registers[0] : null;
-      set({ currentRegister });
+    if (registersError) throw registersError;
 
-      // Se tiver um caixa aberto, buscar as transações e calcular o saldo
-      if (currentRegister) {
-        // Buscar transações
-        const { data: transactions, error: transactionsError } = await supabase
-          .from('cash_register_transactions')
-          .select(`
-            *,
-            employee:profiles!employee_id(full_name)
-          `)
-          .eq('cash_register_id', currentRegister.id)
-          .order('created_at', { ascending: false });
+    const currentRegister = registers && registers.length > 0 ? registers[0] : null;
+    set({ currentRegister });
 
-        if (transactionsError) throw transactionsError;
+    // Se tiver um caixa aberto, buscar as transações e calcular o saldo
+    if (currentRegister) {
+      // Buscar transações - IMPORTANTE: remover o select aninhado que pode estar causando problemas
+      const { data: transactions, error: transactionsError } = await supabase
+        .from('cash_register_transactions')
+        .select('*')
+        .eq('cash_register_id', currentRegister.id)
+        .order('created_at', { ascending: false });
+
+      if (transactionsError) throw transactionsError;
+      
+      // Log para debug
+      console.log('Fetched transactions:', transactions);
+      
+      // Buscar dados dos funcionários separadamente se necessário
+      if (transactions && transactions.length > 0) {
+        // Buscar nomes dos funcionários
+        const employeeIds = [...new Set(transactions.map(t => t.employee_id).filter(Boolean))];
         
-        // Calcular saldo atual
-        const balance = calculateBalance(transactions || []);
-        
-        // Calcular movimentos por categoria
-        const movements = calculateMovements(transactions || []);
-        
-        set({ 
-          transactions: transactions || [],
-          currentBalance: balance,
-          movements
-        });
-      } else {
-        set({ 
-          transactions: [],
-          currentBalance: null,
-          movements: []
-        });
+        if (employeeIds.length > 0) {
+          const { data: employees, error: employeesError } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .in('id', employeeIds);
+          
+          if (!employeesError && employees) {
+            // Mapear nomes dos funcionários para as transações
+            const employeeMap = new Map(employees.map(e => [e.id, e.full_name]));
+            
+            transactions.forEach(transaction => {
+              if (transaction.employee_id) {
+                transaction.employee = {
+                  full_name: employeeMap.get(transaction.employee_id) || 'Desconhecido'
+                };
+              }
+            });
+          }
+        }
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar caixa';
-      set({ error: errorMessage });
-      console.error('Error fetching cash register:', err);
-    } finally {
-      set({ isLoading: false });
+      
+      // Calcular saldo atual
+      const balance = calculateBalance(transactions || []);
+      
+      // Calcular movimentos por categoria
+      const movements = calculateMovements(transactions || []);
+      
+      set({ 
+        transactions: transactions || [],
+        currentBalance: balance,
+        movements
+      });
+    } else {
+      set({ 
+        transactions: [],
+        currentBalance: null,
+        movements: []
+      });
     }
-  },
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar caixa';
+    set({ error: errorMessage });
+    console.error('Error fetching cash register:', err);
+  } finally {
+    set({ isLoading: false });
+  }
+},
 
   fetchCashRegisterHistory: async (startDate?: Date, endDate?: Date) => {
     set({ isLoading: true, error: null });
