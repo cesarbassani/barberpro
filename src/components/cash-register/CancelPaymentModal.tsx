@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useCashRegister } from '../../lib/cashRegisterStore';
+import { useCashRegisterStore } from '../../lib/cashRegisterStore';
 import { useAuth } from '../../lib/auth';
 import { 
   XCircle, 
@@ -37,7 +37,7 @@ export function CancelPaymentModal({ transaction, onClose, onSuccess }: CancelPa
   const [error, setError] = useState<string | null>(null);
   
   const { profile } = useAuth();
-  const { cancelPayment } = useCashRegister();
+  const { cancelPayment } = useCashRegisterStore();
 
   const {
     register,

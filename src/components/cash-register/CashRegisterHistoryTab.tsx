@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useCashRegister } from '../../lib/cashRegisterStore';
+import { useCashRegisterStore } from '../../lib/cashRegisterStore';
 import { useAuth } from '../../lib/auth';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -37,7 +37,7 @@ export function CashRegisterHistoryTab({ onEditRegister, onCreateRetroactiveTran
     transactions,
     isLoading,
     getOperatorName
-  } = useCashRegister();
+  } = useCashRegisterStore();
   
   React.useEffect(() => {
     // Load last 30 days by default
