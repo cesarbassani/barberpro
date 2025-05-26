@@ -97,6 +97,17 @@ export function CashRegisterPage() {
     console.log('Current Balance:', currentBalance);
   }, [currentRegister, transactions, movements, currentBalance]);
 
+  useEffect(() => {
+  // Auto-refresh a cada 30 segundos
+  const interval = setInterval(() => {
+    if (currentRegister) {
+      fetchCurrentRegister();
+    }
+  }, 30000);
+
+  return () => clearInterval(interval);
+}, [currentRegister]);
+
   const handleOpenCashRegister = async (initialAmount: number) => {
     try {
       await useCashRegisterStore.getState().openCashRegister(initialAmount);
@@ -312,7 +323,12 @@ export function CashRegisterPage() {
                 <>
                   <div className="tooltip">
                     <button
-                      onClick={() => fetchCurrentRegister()}
+                      onClick={async () => {
+                        console.log('Forcing refresh...');
+                        await fetchCurrentRegister();
+                        // Force também um refresh dos pedidos
+                        await fetchOrders();
+                      }}
                       className="flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                     >
                       <RefreshCw className="h-4 w-4 mr-2" />
