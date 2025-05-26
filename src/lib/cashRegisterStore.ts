@@ -683,6 +683,12 @@ export async function recordSaleInCashRegister(
   paymentMethod: 'cash' | 'credit_card' | 'debit_card' | 'pix',
   clientName?: string
 ): Promise<boolean> {
+  console.log('=== RECORD SALE IN CASH REGISTER ===');
+  console.log('Order ID:', orderId);
+  console.log('Amount:', amount);
+  console.log('Payment Method:', paymentMethod);
+  console.log('Client Name:', clientName);
+  
   try {
     // Marcar transação como em processamento
     useCashRegisterStore.setState(state => ({
@@ -694,35 +700,51 @@ export async function recordSaleInCashRegister(
 
     // Obter o caixa atual
     const currentRegister = useCashRegisterStore.getState().currentRegister;
+    console.log('Current Register:', currentRegister);
     
     if (!currentRegister) {
+      console.error('No cash register open');
       throw new Error('Não há caixa aberto para registrar venda');
     }
 
     // Obter o usuário atual
-    const { data: userData } = await supabase.auth.getUser();
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    console.log('User data:', userData);
+    console.log('User error:', userError);
     
     if (!userData.user) {
+      console.error('User not authenticated');
       throw new Error('Usuário não autenticado');
     }
 
+    // Preparar dados da transação
+    const transactionData = {
+      cash_register_id: currentRegister.id,
+      employee_id: userData.user.id,
+      amount,
+      operation_type: 'sale',
+      payment_method: paymentMethod,
+      description: `Pagamento da comanda #${orderId.substring(0, 8)}`,
+      reference_id: orderId,
+      category: 'sale',
+      client_name: clientName
+    };
+    
+    console.log('Transaction data to insert:', transactionData);
+
     // Registrar transação de venda
-    const { error: transactionError } = await supabase
+    const { data: insertedData, error: transactionError } = await supabase
       .from('cash_register_transactions')
-      .insert({
-        cash_register_id: currentRegister.id,
-        employee_id: userData.user.id,
-        amount,
-        operation_type: 'sale',
-        payment_method: paymentMethod,
-        description: `Pagamento da comanda #${orderId.substring(0, 8)}`,
-        reference_id: orderId,
-        category: 'sale',
-        client_name: clientName
-      });
+      .insert(transactionData)
+      .select();
+
+    console.log('Insert result:', insertedData);
+    console.log('Insert error:', transactionError);
 
     if (transactionError) throw transactionError;
 
+    console.log('Transaction inserted successfully, refreshing cash register...');
+    
     // Atualizar estado imediatamente após inserir
     await useCashRegisterStore.getState().fetchCurrentRegister();
     
@@ -733,6 +755,7 @@ export async function recordSaleInCashRegister(
       return { processingTransactions: newProcessingTransactions };
     });
 
+    console.log('Sale recorded successfully');
     return true;
   } catch (err) {
     console.error('Error recording sale:', err);
