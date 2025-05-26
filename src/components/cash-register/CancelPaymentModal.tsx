@@ -69,10 +69,10 @@ export function CancelPaymentModal({ transaction, onClose, onSuccess }: CancelPa
 
   // Handle form submission
   const onSubmit = async (data: CancelPaymentFormData) => {
-    setIsSubmitting(true);
-    setError(null);
-    
     try {
+      setIsSubmitting(true);
+      setError(null);
+
       // Validate supervisor password (in a real app, this would be a server call)
       // For demo purposes, we'll use a dummy password
       if (data.supervisor_password !== "1234") {

@@ -12,11 +12,11 @@ import {
   User,
   Search,
   FileText,
+  RefreshCw,
   CheckCircle,
   XCircle,
-  Edit2,
-  PlusCircle,
-  XCircle as XIcon
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 interface CashRegisterHistoryTabProps {
@@ -33,10 +33,10 @@ export function CashRegisterHistoryTab({ onEditRegister, onCreateRetroactiveTran
   
   const { 
     previousRegisters, 
+    transactions,
+    isLoading, 
     fetchCashRegisterHistory,
     fetchTransactionsByRegisterId,
-    transactions,
-    isLoading,
     getOperatorName
   } = useCashRegisterStore();
   
@@ -244,7 +244,7 @@ export function CashRegisterHistoryTab({ onEditRegister, onCreateRetroactiveTran
                           }}
                           className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
                         >
-                          <PlusCircle className="h-3 w-3 mr-1" />
+                          <FileText className="h-3 w-3 mr-1" />
                           Lançamento Retroativo
                         </button>
                       </div>

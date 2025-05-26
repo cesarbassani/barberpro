@@ -54,7 +54,7 @@ export function CashRegisterPage() {
   const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null);
   const [isTransactionDetailsModalOpen, setIsTransactionDetailsModalOpen] = useState(false);
   const [isRetroactiveFormOpen, setIsRetroactiveFormOpen] = useState(false);
-  const [selectedRegister, setSelectedRegister] = useState<CashRegister | null>(null);
+  const [selectedRegister, setSelectedRegister] = useState<any | null>(null);
   const [isEditRegisterFormOpen, setIsEditRegisterFormOpen] = useState(false);
   const [isCancelPaymentModalOpen, setIsCancelPaymentModalOpen] = useState(false);
   const [isCancelOrderModalOpen, setIsCancelOrderModalOpen] = useState(false);
@@ -195,6 +195,8 @@ export function CashRegisterPage() {
       if (success) {
         toast.success('Pagamento processado com sucesso!');
         await fetchOrders();
+        // Atualizar o caixa para mostrar a nova movimentação
+        await fetchCurrentRegister();
       } else {
         toast.error('Erro ao registrar pagamento no caixa');
       }

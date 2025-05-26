@@ -73,12 +73,6 @@ export function OrderPaymentModal({ order, onClose, onSuccess }: OrderPaymentMod
   });
 
   // Set up field array for payment methods
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'methods'
-  });
-
-  // Watch payment methods for calculations
   const methods = watch('methods');
 
   // Calculate totals whenever payment methods change
@@ -110,14 +104,16 @@ export function OrderPaymentModal({ order, onClose, onSuccess }: OrderPaymentMod
   // Add a new payment method
   const handleAddPaymentMethod = (method: 'cash' | 'credit_card' | 'debit_card' | 'pix') => {
     // Don't add if already at max methods or this method already exists
-    if (fields.length >= 4 || methods.some(m => m.method === method)) {
+    if (methods.length >= 4 || methods.some(m => m.method === method)) {
       return;
     }
     
-    append({
+    methods.push({
       method,
       amount: remainingAmount > 0 ? remainingAmount : 0
     });
+    
+    setValue('methods', methods);
   };
 
   // Process the payment
@@ -261,17 +257,21 @@ export function OrderPaymentModal({ order, onClose, onSuccess }: OrderPaymentMod
               
               {/* Payment methods section */}
               <form onSubmit={handleSubmit(handlePayment)} className="space-y-4">
-                {fields.map((field, index) => (
-                  <div key={field.id} className={`p-3 border rounded-md ${getPaymentMethodColor(methods[index]?.method)}`}>
+                {methods.map((method, index) => (
+                  <div key={index} className={`p-3 border rounded-md ${getPaymentMethodColor(methods[index]?.method)}`}>
                     <div className="flex justify-between items-center mb-2">
                       <div className="flex items-center">
                         {getPaymentIcon(methods[index]?.method)}
                         <span className="ml-2 font-medium">{getPaymentMethodName(methods[index]?.method)}</span>
                       </div>
-                      {fields.length > 1 && (
+                      {methods.length > 1 && (
                         <button
                           type="button"
-                          onClick={() => remove(index)}
+                          onClick={() => {
+                            const newMethods = [...methods];
+                            newMethods.splice(index, 1);
+                            setValue('methods', newMethods);
+                          }}
                           className="text-gray-500 hover:text-gray-700"
                         >
                           <XCircle className="h-4 w-4" />
@@ -300,7 +300,7 @@ export function OrderPaymentModal({ order, onClose, onSuccess }: OrderPaymentMod
                 ))}
 
                 {/* Add payment method buttons */}
-                {fields.length < 4 && (
+                {methods.length < 4 && (
                   <div className="grid grid-cols-2 gap-2 mt-4">
                     {paymentMethods.map(method => (
                       <button

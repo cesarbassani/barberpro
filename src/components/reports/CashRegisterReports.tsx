@@ -28,26 +28,17 @@ export function CashRegisterReports() {
   const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date>(endOfMonth(new Date()));
   const [applyingFilters, setApplyingFilters] = useState(false);
-  const [filterValues, setFilterValues] = useState({
-    startDate: startOfMonth(new Date()),
-    endDate: endOfMonth(new Date()),
-    searchTerm: '',
-    operator: 'all'
-  });
   const printRef = useRef<HTMLDivElement>(null);
   
   const { 
-    previousRegisters, 
-    fetchCashRegisterHistory,
-    fetchTransactionsByRegisterId,
-    transactions,
-    isLoading: storeLoading,
-    calculateDailyBalance
+    calculateDailyBalance, 
+    fetchCashRegisterHistory, 
+    previousRegisters 
   } = useCashRegisterStore();
   
   React.useEffect(() => {
     loadData();
-  }, [filterValues]);
+  }, [selectedDate, periodType]);
   
   const loadData = async () => {
     setIsLoading(true);
@@ -91,12 +82,6 @@ export function CashRegisterReports() {
   // Apply filters when the apply button is clicked
   const handleApplyFilters = () => {
     setApplyingFilters(true);
-    setFilterValues({
-      startDate,
-      endDate,
-      searchTerm: '',
-      operator: 'all'
-    });
     fetchCashRegisterHistory(startDate, endDate).then(() => {
       setApplyingFilters(false);
     });
