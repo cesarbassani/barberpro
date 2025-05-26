@@ -56,7 +56,6 @@ export function OrderPaymentModal({ order, onClose, onSuccess }: OrderPaymentMod
 
   // Set up form with default values
   const {
-    control,
     register,
     handleSubmit,
     watch,
@@ -72,7 +71,7 @@ export function OrderPaymentModal({ order, onClose, onSuccess }: OrderPaymentMod
     }
   });
 
-  // Set up field array for payment methods
+  // Watch payment methods for calculations
   const methods = watch('methods');
 
   // Calculate totals whenever payment methods change

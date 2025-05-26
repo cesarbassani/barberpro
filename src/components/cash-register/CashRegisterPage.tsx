@@ -592,7 +592,9 @@ export function CashRegisterPage() {
                               )}
                             </span>
                             <span className={`font-medium ${item.is_loyalty_service ? 'text-indigo-500' : ''}`}>
-                              {item.is_loyalty_service ? 'Plano' : `R$ ${Number(item.total_price).toFixed(2)}`}
+                              {item.is_loyalty_service 
+                                ? 'Plano' 
+                                : `R$ ${Number(item.total_price).toFixed(2)}`}
                             </span>
                           </div>
                         ))}

@@ -30,11 +30,7 @@ export function CashRegisterReports() {
   const [applyingFilters, setApplyingFilters] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   
-  const { 
-    calculateDailyBalance, 
-    fetchCashRegisterHistory, 
-    previousRegisters 
-  } = useCashRegisterStore();
+  const { calculateDailyBalance, fetchCashRegisterHistory, previousRegisters } = useCashRegisterStore();
   
   React.useEffect(() => {
     loadData();

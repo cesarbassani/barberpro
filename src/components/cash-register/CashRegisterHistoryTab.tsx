@@ -94,7 +94,7 @@ export function CashRegisterHistoryTab({ onEditRegister, onCreateRetroactiveTran
                 id="startDate"
                 value={startDate ? format(startDate, 'yyyy-MM-dd') : ''}
                 onChange={(e) => setStartDate(e.target.value ? new Date(e.target.value) : null)}
-                className="h-10 pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                className="h-10 pl-[35px] block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
               />
             </div>
           </div>
@@ -112,7 +112,7 @@ export function CashRegisterHistoryTab({ onEditRegister, onCreateRetroactiveTran
                 id="endDate"
                 value={endDate ? format(endDate, 'yyyy-MM-dd') : ''}
                 onChange={(e) => setEndDate(e.target.value ? new Date(e.target.value) : null)}
-                className="h-10 pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                className="h-10 pl-[35px] block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
               />
             </div>
           </div>
@@ -234,7 +234,7 @@ export function CashRegisterHistoryTab({ onEditRegister, onCreateRetroactiveTran
                           }}
                           className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
                         >
-                          <Edit2 className="h-3 w-3 mr-1" />
+                          <Eye className="h-3 w-3 mr-1" />
                           Editar Fechamento
                         </button>
                         <button
