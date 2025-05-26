@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useCashRegister } from '../../lib/cashRegisterStore';
+import { useCashRegisterStore, recordSaleInCashRegister } from '../../lib/cashRegisterStore';
 import { useAuth } from '../../lib/auth';
 import { format, addDays, isToday, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -69,9 +69,11 @@ export function CashRegisterPage() {
     isSubmitting,
     error, 
     fetchCashRegisterHistory,
+    fetchCurrentRegister,
+    fetchTransactionsByRegisterId,
     processingTransactions,
     getOperatorName
-  } = useCashRegister();
+  } = useCashRegisterStore();
   
   const { orders, isLoading: ordersLoading, fetchOrders, updateOrderStatus } = useOrders();
   const { profile } = useAuth();
@@ -79,8 +81,8 @@ export function CashRegisterPage() {
 
   useEffect(() => {
     // Use getState() to ensure we're getting the latest reference to the function
-    const fetchRegister = useCashRegister.getState().fetchCurrentRegister;
-    const fetchHistoryFn = useCashRegister.getState().fetchCashRegisterHistory;
+    const fetchRegister = useCashRegisterStore.getState().fetchCurrentRegister;
+    const fetchHistoryFn = useCashRegisterStore.getState().fetchCashRegisterHistory;
     
     fetchRegister();
     fetchOrders();
@@ -89,7 +91,7 @@ export function CashRegisterPage() {
 
   const handleOpenCashRegister = async (initialAmount: number) => {
     try {
-      await useCashRegister.getState().openCashRegister(initialAmount);
+      await useCashRegisterStore.getState().openCashRegister(initialAmount);
       setIsOpenFormVisible(false);
     } catch (error) {
       console.error('Error opening cash register:', error);
@@ -98,7 +100,7 @@ export function CashRegisterPage() {
 
   const handleCloseCashRegister = async (data: any) => {
     try {
-      await useCashRegister.getState().closeCashRegister(data);
+      await useCashRegisterStore.getState().closeCashRegister(data);
       setIsCloseFormVisible(false);
     } catch (error) {
       console.error('Error closing cash register:', error);
@@ -107,7 +109,7 @@ export function CashRegisterPage() {
 
   const handleEditCashRegister = async (data: any) => {
     try {
-      await useCashRegister.getState().editCashRegister({
+      await useCashRegisterStore.getState().editCashRegister({
         id: selectedRegister?.id || '',
         countedCash: data.countedCash,
         nextDayAmount: data.nextDayAmount,
@@ -124,7 +126,7 @@ export function CashRegisterPage() {
     try {
       if (!selectedRegister) return;
       
-      await useCashRegister.getState().createRetroactiveTransaction(
+      await useCashRegisterStore.getState().createRetroactiveTransaction(
         selectedRegister.id,
         data
       );
@@ -136,7 +138,7 @@ export function CashRegisterPage() {
 
   const handleDeposit = async (amount: number, description: string, paymentMethod: 'cash' | 'credit_card' | 'debit_card' | 'pix') => {
     try {
-      await useCashRegister.getState().addDeposit(amount, description, paymentMethod);
+      await useCashRegisterStore.getState().addDeposit(amount, description, paymentMethod);
       setIsDepositFormVisible(false);
     } catch (error) {
       console.error('Error adding deposit:', error);
@@ -145,7 +147,7 @@ export function CashRegisterPage() {
 
   const handleWithdrawal = async (amount: number, description: string) => {
     try {
-      await useCashRegister.getState().addWithdrawal(amount, description);
+      await useCashRegisterStore.getState().addWithdrawal(amount, description);
       setIsWithdrawalFormVisible(false);
     } catch (error) {
       console.error('Error adding withdrawal:', error);
@@ -301,7 +303,7 @@ export function CashRegisterPage() {
                 <>
                   <div className="tooltip">
                     <button
-                      onClick={() => useCashRegister.getState().fetchCurrentRegister()}
+                      onClick={() => fetchCurrentRegister()}
                       className="flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                     >
                       <RefreshCw className="h-4 w-4 mr-2" />
@@ -689,7 +691,7 @@ export function CashRegisterPage() {
               <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
                 <h3 className="text-lg font-medium text-gray-900">Movimentações do Caixa</h3>
                 <button
-                  onClick={() => useCashRegister.getState().fetchCurrentRegister()}
+                  onClick={() => fetchCurrentRegister()}
                   className="text-primary-600 hover:text-primary-800"
                 >
                   <RefreshCw className="h-4 w-4" />
@@ -924,7 +926,7 @@ export function CashRegisterPage() {
             setIsCancelPaymentModalOpen(false);
             setSelectedTransaction(null);
             // Refresh data
-            useCashRegister.getState().fetchCurrentRegister();
+            fetchCurrentRegister();
           }}
         />
       )}
