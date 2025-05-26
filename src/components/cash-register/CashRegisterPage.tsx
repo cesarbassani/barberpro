@@ -3,6 +3,7 @@ import { useCashRegisterStore, recordSaleInCashRegister } from '../../lib/cashRe
 import { useAuth } from '../../lib/auth';
 import { format, addDays, isToday, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { supabase } from '../../lib/supabase';
 import { 
   Receipt, 
   DollarSign, 
