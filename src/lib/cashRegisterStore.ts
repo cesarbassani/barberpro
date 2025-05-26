@@ -608,7 +608,6 @@ function calculateBalance(transactions: CashTransaction[]): CashBalance {
 }
 
 // Função auxiliar para calcular movimentos por categoria
-function // Função auxiliar para calcular movimentos por categoria
 function calculateMovements(transactions: CashTransaction[]): CashMovement[] {
   const categories: Record<string, number> = {
     sale: 0,
