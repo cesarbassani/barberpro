@@ -41,23 +41,34 @@ export function CashRegisterReports() {
     try {
       // Load cash register history for the period
       let start: Date;
-      let end: Date;
+      let end: Date = endOfDay(new Date());
       
-      if (periodType === 'daily') {
-        start = selectedDate;
-        end = selectedDate;
-      } else if (periodType === 'weekly') {
-        start = startOfWeek(selectedDate, { locale: ptBR });
-        end = endOfWeek(selectedDate, { locale: ptBR });
-      } else { // monthly
-        start = startOfMonth(selectedDate);
-        end = endOfMonth(selectedDate);
+      switch (periodType) {
+        case 'daily':
+          start = startOfDay(new Date());
+          break;
+        case 'yesterday':
+          start = startOfDay(new Date(Date.now() - 24 * 60 * 60 * 1000));
+          end = endOfDay(new Date(Date.now() - 24 * 60 * 60 * 1000));
+          break;
+        case 'week':
+          start = startOfDay(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+          break;
+        case 'month':
+          start = startOfMonth(new Date());
+          end = endOfMonth(new Date());
+          break;
+        case 'custom':
+          start = startOfDay(new Date(startDate));
+          end = endOfDay(new Date(endDate));
+          break;
+        default:
+          start = startOfDay(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
       }
       
       setStartDate(start);
       setEndDate(end);
       
-      // Only fetch data when filters are applied
       if (!applyingFilters) {
         await fetchCashRegisterHistory(start, end);
       }
@@ -65,8 +76,8 @@ export function CashRegisterReports() {
       // Load daily balance for quick view
       const balance = await calculateDailyBalance(selectedDate);
       setDailyBalance(balance);
-    } catch (error) {
-      console.error('Error loading report data:', error);
+    } catch (err) {
+      console.error('Error loading report data:', err);
     } finally {
       setIsLoading(false);
     }
@@ -163,8 +174,8 @@ export function CashRegisterReports() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `relatorio-caixa-${format(selectedDate, 'yyyy-MM-dd')}.csv`);
+    link.href = url;
+    link.setAttribute('download', `relatorio-caixa-${format(new Date(), 'yyyy-MM-dd')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -210,7 +221,7 @@ export function CashRegisterReports() {
           <button
             onClick={handleExportCsv}
             disabled={!previousRegisters.length}
-            className="flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
           >
             <Download className="h-4 w-4 mr-2" />
             Exportar CSV
@@ -292,7 +303,7 @@ export function CashRegisterReports() {
                   type="date"
                   value={format(startDate, 'yyyy-MM-dd')}
                   onChange={(e) => setStartDate(parseISO(e.target.value))}
-                  className="h-10 pl-8 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                  className="h-10 pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                 />
               </div>
               <div className="relative">
@@ -303,7 +314,7 @@ export function CashRegisterReports() {
                   type="date"
                   value={format(endDate, 'yyyy-MM-dd')}
                   onChange={(e) => setEndDate(parseISO(e.target.value))}
-                  className="h-10 pl-8 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                  className="h-10 pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                 />
               </div>
             </div>
@@ -398,19 +409,9 @@ export function CashRegisterReports() {
           {/* Cash Registers Table */}
           <div className="bg-white shadow rounded-lg overflow-hidden">
             <div className="px-4 py-5 border-b border-gray-200 flex justify-between items-center">
-              <div className="flex items-center">
-                <h3 className="text-lg leading-6 font-medium text-gray-900">
-                  Registros de Caixa
-                </h3>
-                <div className="ml-4 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Buscar registro"
-                    className="pl-9 pr-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
-                  />
-                </div>
-              </div>
+              <h3 className="text-lg leading-6 font-medium text-gray-900">
+                Registros de Caixa
+              </h3>
               
               <div className="text-sm text-gray-500">
                 Exibindo {previousRegisters.length} registro{previousRegisters.length !== 1 ? 's' : ''}
@@ -506,5 +507,12 @@ export function CashRegisterReports() {
 function endOfDay(date: Date): Date {
   const result = new Date(date);
   result.setHours(23, 59, 59, 999);
+  return result;
+}
+
+// Helper function to get start of day
+function startOfDay(date: Date): Date {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
   return result;
 }

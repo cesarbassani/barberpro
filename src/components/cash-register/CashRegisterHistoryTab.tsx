@@ -28,6 +28,7 @@ export function CashRegisterHistoryTab({ onEditRegister, onCreateRetroactiveTran
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [expandedRegisterId, setExpandedRegisterId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const { profile } = useAuth();
   
   const { 

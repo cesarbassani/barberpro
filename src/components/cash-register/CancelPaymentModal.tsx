@@ -97,9 +97,9 @@ export function CancelPaymentModal({ transaction, onClose, onSuccess }: CancelPa
         toast.success('Pagamento cancelado com sucesso!');
       }, 2000);
       
-    } catch (err) {
+    } catch (error) {
       setIsSubmitting(false);
-      setError(err instanceof Error ? err.message : 'Erro ao processar cancelamento');
+      setError(error instanceof Error ? error.message : 'Erro ao processar cancelamento');
       setStep('password');
     }
   };
