@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useCashRegister, type CashBalance } from '../../lib/cashRegisterStore';
+import { useCashRegisterStore, type CashBalance } from '../../lib/cashRegisterStore';
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, addMonths, subMonths, parseISO, isAfter, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -30,7 +30,7 @@ export function CashRegisterReports() {
   const [applyingFilters, setApplyingFilters] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   
-  const { calculateDailyBalance, fetchCashRegisterHistory, previousRegisters } = useCashRegister();
+  const { calculateDailyBalance, fetchCashRegisterHistory, previousRegisters } = useCashRegisterStore();
   
   React.useEffect(() => {
     loadData();
