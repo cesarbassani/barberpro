@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { 
@@ -20,7 +20,7 @@ import toast from 'react-hot-toast';
 
 const paymentMethodSchema = z.object({
   method: z.enum(['cash', 'credit_card', 'debit_card', 'pix']),
-  amount: z.number().min(0.01, 'Valor deve ser maior que zero'),
+  amount: z.number().min(0.01, 'O valor deve ser maior que zero'),
 });
 
 const paymentSchema = z.object({
@@ -122,13 +122,9 @@ export function OrderPaymentModal({ order, onClose, onSuccess }: OrderPaymentMod
 
   // Process the payment
   const handlePayment = async (data: PaymentFormData) => {
-    setIsSubmitting(true);
-    setError(null);
-    
     try {
-      if (!currentRegister) {
-        throw new Error('Não há caixa aberto para registrar pagamento');
-      }
+      setIsSubmitting(true);
+      setError(null);
       
       // Check if the transaction is already being processed
       if (processingTransactions && processingTransactions[order.id]) {
@@ -164,8 +160,8 @@ export function OrderPaymentModal({ order, onClose, onSuccess }: OrderPaymentMod
         toast.success('Pagamento processado com sucesso!');
       }, 2000);
       
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao processar pagamento');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Erro ao processar pagamento');
       setStep('payment');
       setIsSubmitting(false);
     }
@@ -291,7 +287,7 @@ export function OrderPaymentModal({ order, onClose, onSuccess }: OrderPaymentMod
                         step="0.01"
                         min="0.01"
                         {...register(`methods.${index}.amount` as const, { valueAsNumber: true })}
-                        className="pl-[35px] block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                        className="pl-[35px] block w-full rounded-md border-gray-300 shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                         placeholder="0.00"
                       />
                     </div>
