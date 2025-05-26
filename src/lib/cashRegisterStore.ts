@@ -620,29 +620,34 @@ function calculateMovements(transactions: CashTransaction[]): CashMovement[] {
     const category = transaction.category;
     const amount = transaction.amount;
     
-    // Ignorar transações de abertura e fechamento
-    if (transaction.operation_type === 'open' || transaction.operation_type === 'close') {
+    // Incluir transações de abertura como depósito inicial
+    if (transaction.operation_type === 'open') {
+      categories.deposit += amount;
+      return;
+    }
+    
+    // Ignorar apenas transações de fechamento
+    if (transaction.operation_type === 'close') {
       return;
     }
     
     // Somar valores por categoria
     if (category in categories) {
-      if (category === 'sale' || category === 'deposit') {
-        categories[category] += amount;
-      } else {
-        categories[category] += amount;
-      }
+      categories[category] += amount;
     }
   });
 
   // Converter para array de movimentos
-  return Object.entries(categories).map(([category, amount]) => ({
-    category,
-    amount
-  }));
+  return Object.entries(categories)
+    .filter(([_, amount]) => amount > 0) // Apenas categorias com valores
+    .map(([category, amount]) => ({
+      category,
+      amount
+    }));
 }
 
 // Função para registrar venda no caixa
+e// Função corrigida para registrar venda no caixa
 export async function recordSaleInCashRegister(
   orderId: string,
   amount: number,
@@ -665,12 +670,19 @@ export async function recordSaleInCashRegister(
       throw new Error('Não há caixa aberto para registrar venda');
     }
 
+    // Obter o usuário atual
+    const { data: userData } = await supabase.auth.getUser();
+    
+    if (!userData.user) {
+      throw new Error('Usuário não autenticado');
+    }
+
     // Registrar transação de venda
     const { error: transactionError } = await supabase
       .from('cash_register_transactions')
       .insert({
         cash_register_id: currentRegister.id,
-        employee_id: (await supabase.auth.getUser()).data.user?.id,
+        employee_id: userData.user.id,
         amount,
         operation_type: 'sale',
         payment_method: paymentMethod,
@@ -682,7 +694,7 @@ export async function recordSaleInCashRegister(
 
     if (transactionError) throw transactionError;
 
-    // Atualizar estado
+    // Atualizar estado imediatamente após inserir
     await useCashRegisterStore.getState().fetchCurrentRegister();
     
     // Remover transação do processamento
@@ -696,7 +708,7 @@ export async function recordSaleInCashRegister(
   } catch (err) {
     console.error('Error recording sale:', err);
     
-    // Remover transação do processamento
+    // Remover transação do processamento em caso de erro
     useCashRegisterStore.setState(state => {
       const newProcessingTransactions = { ...state.processingTransactions };
       delete newProcessingTransactions[orderId];
