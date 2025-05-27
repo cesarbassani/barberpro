@@ -93,7 +93,11 @@ fetchCurrentRegister: async () => {
     // Buscar o caixa atual (aberto)
     const { data: registers, error: registersError } = await supabase
       .from('cash_registers')
-      .select('*')
+      .select(`
+        *,
+        opening_employee:profiles!opening_employee_id(full_name),
+        closing_employee:profiles!closing_employee_id(full_name)
+      `)
       .eq('status', 'open')
       .order('opened_at', { ascending: false })
       .limit(1);
@@ -102,26 +106,13 @@ fetchCurrentRegister: async () => {
 
     const currentRegister = registers && registers.length > 0 ? registers[0] : null;
     
-    // Buscar dados do funcionário de abertura
-    if (currentRegister && currentRegister.opening_employee_id) {
-      const { data: openingEmployee } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', currentRegister.opening_employee_id)
-        .single();
-      
-      if (openingEmployee) {
-        currentRegister.opening_employee = openingEmployee;
-      }
-    }
-    
     set({ currentRegister });
 
     // Se tiver um caixa aberto, buscar as transações
     if (currentRegister) {
-      // IMPORTANTE: usar 'cash_register_transactions' e não 'transactions'
+      // Buscar transações do caixa atual
       const { data: transactions, error: transactionsError } = await supabase
-        .from('cash_register_transactions') // <-- TABELA CORRETA!
+        .from('cash_register_transactions')
         .select(`
           *,
           employee:profiles!employee_id(full_name)
@@ -527,7 +518,8 @@ fetchCurrentRegister: async () => {
           payment_method: data.payment_method,
           description: data.description || 'Lançamento retroativo',
           category: data.category,
-          created_at: data.transaction_date || new Date().toISOString()
+          created_at: data.transaction_date || new Date().toISOString(),
+          client_name: data.client_name
         });
 
       if (transactionError) throw transactionError;
