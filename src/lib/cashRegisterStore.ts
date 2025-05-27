@@ -122,34 +122,16 @@ fetchCurrentRegister: async () => {
       // IMPORTANTE: usar 'cash_register_transactions' e não 'transactions'
       const { data: transactions, error: transactionsError } = await supabase
         .from('cash_register_transactions') // <-- TABELA CORRETA!
-        .select('*')
+        .select(`
+          *,
+          employee:profiles!employee_id(full_name)
+        `)
         .eq('cash_register_id', currentRegister.id)
         .order('created_at', { ascending: false });
 
       if (transactionsError) throw transactionsError;
       
       console.log('Transactions from cash_register_transactions:', transactions);
-      
-      // Buscar nomes dos funcionários
-      if (transactions && transactions.length > 0) {
-        const employeeIds = [...new Set(transactions.map(t => t.employee_id).filter(Boolean))];
-        
-        if (employeeIds.length > 0) {
-          const { data: employees } = await supabase
-            .from('profiles')
-            .select('id, full_name')
-            .in('id', employeeIds);
-          
-          if (employees) {
-            const employeeMap = new Map(employees.map(e => [e.id, e.full_name]));
-            transactions.forEach(t => {
-              if (t.employee_id) {
-                t.employee = { full_name: employeeMap.get(t.employee_id) || 'Desconhecido' };
-              }
-            });
-          }
-        }
-      }
       
       // Calcular saldo atual
       const balance = calculateBalance(transactions || []);

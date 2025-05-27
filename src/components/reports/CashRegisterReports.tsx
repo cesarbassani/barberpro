@@ -47,12 +47,20 @@ export function CashRegisterReports() {
         case 'daily':
           start = startOfDay(new Date());
           break;
-        case 'weekly':
+        case 'yesterday':
+          start = startOfDay(new Date(Date.now() - 24 * 60 * 60 * 1000));
+          end = endOfDay(new Date(Date.now() - 24 * 60 * 60 * 1000));
+          break;
+        case 'week':
           start = startOfDay(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
           break;
-        case 'monthly':
+        case 'month':
           start = startOfMonth(new Date());
           end = endOfMonth(new Date());
+          break;
+        case 'custom':
+          start = startOfDay(new Date(startDate));
+          end = endOfDay(new Date(endDate));
           break;
         default:
           start = startOfDay(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
@@ -120,7 +128,9 @@ export function CashRegisterReports() {
   };
   
   const handlePrint = () => {
-    window.print();
+    if (printRef.current) {
+      window.print();
+    }
   };
   
   const handleExportCsv = () => {
@@ -160,6 +170,7 @@ export function CashRegisterReports() {
       ...rows.map(row => row.join(','))
     ].join('\n');
     
+    // Create file and download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -202,7 +213,7 @@ export function CashRegisterReports() {
         <div className="flex items-center space-x-2">
           <button
             onClick={handlePrint}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            className="flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
           >
             <Printer className="h-4 w-4 mr-2" />
             Imprimir
@@ -210,7 +221,7 @@ export function CashRegisterReports() {
           <button
             onClick={handleExportCsv}
             disabled={!previousRegisters.length}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+            className="flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
           >
             <Download className="h-4 w-4 mr-2" />
             Exportar CSV
@@ -220,68 +231,104 @@ export function CashRegisterReports() {
       
       {/* Period Selector */}
       <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex flex-wrap justify-between items-center">
-          <div className="flex space-x-2">
-            <button
-              onClick={() => handlePeriodChange('daily')}
-              className={`px-3 py-1 text-sm font-medium rounded-md ${
-                periodType === 'daily' 
-                  ? 'bg-primary-100 text-primary-800' 
-                  : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-              }`}
-            >
-              Diário
-            </button>
-            <button
-              onClick={() => handlePeriodChange('weekly')}
-              className={`px-3 py-1 text-sm font-medium rounded-md ${
-                periodType === 'weekly' 
-                  ? 'bg-primary-100 text-primary-800' 
-                  : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-              }`}
-            >
-              Semanal
-            </button>
-            <button
-              onClick={() => handlePeriodChange('monthly')}
-              className={`px-3 py-1 text-sm font-medium rounded-md ${
-                periodType === 'monthly' 
-                  ? 'bg-primary-100 text-primary-800' 
-                  : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-              }`}
-            >
-              Mensal
-            </button>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Período</label>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => handlePeriodChange('daily')}
+                className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md ${
+                  periodType === 'daily' 
+                    ? 'bg-primary-100 text-primary-800' 
+                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                }`}
+              >
+                Diário
+              </button>
+              <button
+                onClick={() => handlePeriodChange('weekly')}
+                className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md ${
+                  periodType === 'weekly' 
+                    ? 'bg-primary-100 text-primary-800' 
+                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                }`}
+              >
+                Semanal
+              </button>
+              <button
+                onClick={() => handlePeriodChange('monthly')}
+                className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md ${
+                  periodType === 'monthly' 
+                    ? 'bg-primary-100 text-primary-800' 
+                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                }`}
+              >
+                Mensal
+              </button>
+            </div>
           </div>
           
-          <div className="flex items-center mt-2 md:mt-0">
-            <button
-              onClick={navigatePrevious}
-              className="p-1 rounded-md hover:bg-gray-100"
-            >
-              <ChevronLeft className="h-5 w-5 text-gray-500" />
-            </button>
-            <span className="px-2 text-gray-700 font-medium">
-              {getPeriodLabel()}
-            </span>
-            <button
-              onClick={navigateNext}
-              className="p-1 rounded-md hover:bg-gray-100"
-            >
-              <ChevronRight className="h-5 w-5 text-gray-500" />
-            </button>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Navegação</label>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={navigatePrevious}
+                className="p-2 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              
+              <span className="flex-1 text-center font-medium text-gray-700">
+                {getPeriodLabel()}
+              </span>
+              
+              <button
+                onClick={navigateNext}
+                disabled={isAfter(endOfDay(endDate), endOfDay(new Date()))}
+                className="p-2 rounded-md hover:bg-gray-100 text-gray-400 hover:text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
           </div>
           
-          <div className="flex items-center space-x-2 mt-2 md:mt-0">
-            <span className="text-sm text-gray-500">
-              <Calendar className="h-4 w-4 inline mr-1" />
-              Hoje
-            </span>
+          <div className="flex flex-col space-y-2">
+            <label className="block text-sm font-medium text-gray-700">Período Personalizado</label>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Calendar className="h-4 w-4 text-gray-400" />
+                </div>
+                <input 
+                  type="date"
+                  value={format(startDate, 'yyyy-MM-dd')}
+                  onChange={(e) => setStartDate(parseISO(e.target.value))}
+                  className="h-10 pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                />
+              </div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Calendar className="h-4 w-4 text-gray-400" />
+                </div>
+                <input 
+                  type="date"
+                  value={format(endDate, 'yyyy-MM-dd')}
+                  onChange={(e) => setEndDate(parseISO(e.target.value))}
+                  className="h-10 pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                />
+              </div>
+            </div>
             <button
-              onClick={() => setSelectedDate(new Date())}
-              className="px-3 py-1 text-sm font-medium rounded-md bg-gray-100 text-gray-800 hover:bg-gray-200"
+              onClick={handleApplyFilters}
+              disabled={applyingFilters}
+              className="h-10 w-full px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
             >
-              Ir para Hoje
+              {applyingFilters ? (
+                <RefreshCw className="inline h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Filter className="inline h-4 w-4 mr-2" />
+              )}
+              Aplicar Filtros
             </button>
           </div>
         </div>
@@ -361,101 +408,94 @@ export function CashRegisterReports() {
           
           {/* Cash Registers Table */}
           <div className="bg-white shadow rounded-lg overflow-hidden">
-            <div className="px-4 py-5 border-b border-gray-200">
+            <div className="px-4 py-5 border-b border-gray-200 flex justify-between items-center">
               <h3 className="text-lg leading-6 font-medium text-gray-900">
                 Registros de Caixa
               </h3>
+              
+              <div className="text-sm text-gray-500">
+                Exibindo {previousRegisters.length} registro{previousRegisters.length !== 1 ? 's' : ''}
+              </div>
             </div>
             
-            {isLoading ? (
-              <div className="p-6 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-                <p className="mt-2 text-sm text-gray-500">Carregando registros...</p>
-              </div>
-            ) : previousRegisters.length === 0 ? (
-              <div className="p-6 text-center text-gray-500">
-                Nenhum registro encontrado para o período selecionado.
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Data/Hora
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Operador
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Início
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Final
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Diferença
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {previousRegisters.map((register) => (
-                      <tr key={register.id} className="hover:bg-gray-50 cursor-pointer" 
-                        onClick={() => window.location.href = `#register-${register.id}`}>
-                        <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
-                          {format(new Date(register.opened_at), "dd/MM/yyyy HH:mm")}
-                        </td>
-                        <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-500">
-                          {register.opening_employee?.full_name || 'Não registrado'}
-                        </td>
-                        <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
-                          R$ {Number(register.initial_amount).toFixed(2)}
-                        </td>
-                        <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
-                          {register.final_amount 
-                            ? `R$ ${Number(register.final_amount).toFixed(2)}` 
-                            : '-'}
-                        </td>
-                        <td className="px-6 py-3 whitespace-nowrap text-sm">
-                          {register.difference_amount ? (
-                            <span className={`${
-                              Number(register.difference_amount) > 0 
-                                ? 'text-green-600' 
-                                : Number(register.difference_amount) < 0 
-                                  ? 'text-red-600' 
-                                  : 'text-gray-500'
-                            }`}>
-                              {Number(register.difference_amount) > 0 ? '+' : ''}
-                              R$ {Number(register.difference_amount).toFixed(2)}
-                            </span>
-                          ) : '-'}
-                        </td>
-                        <td className="px-6 py-3 whitespace-nowrap text-sm">
-                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            register.status === 'open' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-gray-100 text-gray-800'
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Data/Hora
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Operador
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Início
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Final
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Diferença
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {previousRegisters.map((register) => (
+                    <tr key={register.id} className="hover:bg-gray-50 cursor-pointer" 
+                      onClick={() => window.location.href = `#register-${register.id}`}>
+                      <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                        {format(new Date(register.opened_at), "dd/MM/yyyy HH:mm")}
+                      </td>
+                      <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {register.opening_employee?.full_name || 'Não registrado'}
+                      </td>
+                      <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                        R$ {Number(register.initial_amount).toFixed(2)}
+                      </td>
+                      <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                        {register.final_amount 
+                          ? `R$ ${Number(register.final_amount).toFixed(2)}` 
+                          : '-'}
+                      </td>
+                      <td className="px-6 py-3 whitespace-nowrap text-sm">
+                        {register.difference_amount ? (
+                          <span className={`${
+                            Number(register.difference_amount) > 0 
+                              ? 'text-green-600' 
+                              : Number(register.difference_amount) < 0 
+                                ? 'text-red-600' 
+                                : 'text-gray-500'
                           }`}>
-                            {register.status === 'open' ? 'Aberto' : 'Fechado'}
+                            {Number(register.difference_amount) > 0 ? '+' : ''}
+                            R$ {Number(register.difference_amount).toFixed(2)}
                           </span>
-                        </td>
-                      </tr>
-                    ))}
-                    
-                    {previousRegisters.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-4 text-sm text-center text-gray-500">
-                          Nenhum registro encontrado para o período selecionado.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                        ) : '-'}
+                      </td>
+                      <td className="px-6 py-3 whitespace-nowrap text-sm">
+                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          register.status === 'open' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {register.status === 'open' ? 'Aberto' : 'Fechado'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  
+                  {previousRegisters.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-4 text-sm text-center text-gray-500">
+                        Nenhum registro encontrado para o período selecionado.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
