@@ -612,7 +612,7 @@ export function CashRegisterPage() {
                             <span className="flex items-center">
                               {item.quantity}x {item.service?.name || item.product?.name || 'Item desconhecido'}
                               {item.is_loyalty_service && (
-                                <Crown className="h-3 w-3 ml-1 text-indigo-600\" title=\"Incluso no plano de fidelidade" />
+                                <Crown className="h-3 w-3 ml-1 text-indigo-600" title="Incluso no plano de fidelidade" />
                               )}
                             </span>
                             <span className={`font-medium ${item.is_loyalty_service ? 'text-indigo-500' : ''}`}>
@@ -667,6 +667,7 @@ export function CashRegisterPage() {
                           <div className="tooltip">
                             <button
                               onClick={() => handlePayment(order.id, 'debit_card')}
+                              
                               disabled={!currentRegister || (processingTransactions && processingTransactions[order.id])}
                               className={`flex items-center justify-center px-3 py-2 border rounded-md text-sm ${
                                 currentRegister && !(processingTransactions && processingTransactions[order.id])
