@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { supabase } from './supabase';
+import { supabase, withRetry } from './supabase';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
@@ -87,72 +87,76 @@ export const useCashRegisterStore = create<CashRegisterState>((set, get) => ({
   error: null,
   processingTransactions: null,
 
-fetchCurrentRegister: async () => {
-  set({ isLoading: true, error: null });
-  try {
-    // Buscar o caixa atual (aberto)
-    const { data: registers, error: registersError } = await supabase
-      .from('cash_registers')
-      .select(`
-        *,
-        opening_employee:profiles!opening_employee_id(full_name),
-        closing_employee:profiles!closing_employee_id(full_name)
-      `)
-      .eq('status', 'open')
-      .order('opened_at', { ascending: false })
-      .limit(1);
+  fetchCurrentRegister: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      // Buscar o caixa atual (aberto)
+      const { data: registers, error: registersError } = await withRetry(() =>
+        supabase
+          .from('cash_registers')
+          .select(`
+            *,
+            opening_employee:profiles!opening_employee_id(full_name),
+            closing_employee:profiles!closing_employee_id(full_name)
+          `)
+          .eq('status', 'open')
+          .order('opened_at', { ascending: false })
+          .limit(1)
+      );
 
-    if (registersError) throw registersError;
+      if (registersError) throw registersError;
 
-    const currentRegister = registers && registers.length > 0 ? registers[0] : null;
-    
-    set({ currentRegister });
+      const currentRegister = registers && registers.length > 0 ? registers[0] : null;
+      
+      set({ currentRegister });
 
-    // Se tiver um caixa aberto, buscar as transações
-    if (currentRegister) {
-      // Buscar transações do caixa atual
-      const { data: transactions, error: transactionsError } = await supabase
-        .from('cash_register_transactions')
-        .select(`
-          *,
-          employee:profiles!employee_id(full_name)
-        `)
-        .eq('cash_register_id', currentRegister.id)
-        .order('created_at', { ascending: false });
+      // Se tiver um caixa aberto, buscar as transações
+      if (currentRegister) {
+        // Buscar transações do caixa atual
+        const { data: transactions, error: transactionsError } = await withRetry(() =>
+          supabase
+            .from('cash_register_transactions')
+            .select(`
+              *,
+              employee:profiles!employee_id(full_name)
+            `)
+            .eq('cash_register_id', currentRegister.id)
+            .order('created_at', { ascending: false })
+        );
 
-      if (transactionsError) {
-        console.error('Erro ao buscar transações:', transactionsError);
-        throw transactionsError;
+        if (transactionsError) {
+          console.error('Erro ao buscar transações:', transactionsError);
+          throw transactionsError;
+        }
+        
+        console.log('Transactions from cash_register_transactions:', transactions);
+        
+        // Calcular saldo atual
+        const balance = calculateBalance(transactions || []);
+        
+        // Calcular movimentos por categoria
+        const movements = calculateMovements(transactions || []);
+        
+        set({ 
+          transactions: transactions || [],
+          currentBalance: balance,
+          movements
+        });
+      } else {
+        set({ 
+          transactions: [],
+          currentBalance: null,
+          movements: []
+        });
       }
-      
-      console.log('Transactions from cash_register_transactions:', transactions);
-      
-      // Calcular saldo atual
-      const balance = calculateBalance(transactions || []);
-      
-      // Calcular movimentos por categoria
-      const movements = calculateMovements(transactions || []);
-      
-      set({ 
-        transactions: transactions || [],
-        currentBalance: balance,
-        movements
-      });
-    } else {
-      set({ 
-        transactions: [],
-        currentBalance: null,
-        movements: []
-      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar caixa';
+      set({ error: errorMessage });
+      console.error('Error fetching cash register:', err);
+    } finally {
+      set({ isLoading: false });
     }
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar caixa';
-    set({ error: errorMessage });
-    console.error('Error fetching cash register:', err);
-  } finally {
-    set({ isLoading: false });
-  }
-},
+  },
 
   fetchCashRegisterHistory: async (startDate?: Date, endDate?: Date) => {
     set({ isLoading: true, error: null });
@@ -175,7 +179,7 @@ fetchCurrentRegister: async () => {
         query = query.lte('opened_at', endDate.toISOString());
       }
 
-      const { data, error } = await query;
+      const { data, error } = await withRetry(() => query);
 
       if (error) throw error;
       set({ previousRegisters: data || [] });
@@ -191,14 +195,16 @@ fetchCurrentRegister: async () => {
   fetchTransactionsByRegisterId: async (registerId: string) => {
     set({ isLoading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('cash_register_transactions')
-        .select(`
-          *,
-          employee:profiles!employee_id(full_name)
-        `)
-        .eq('cash_register_id', registerId)
-        .order('created_at', { ascending: true });
+      const { data, error } = await withRetry(() =>
+        supabase
+          .from('cash_register_transactions')
+          .select(`
+            *,
+            employee:profiles!employee_id(full_name)
+          `)
+          .eq('cash_register_id', registerId)
+          .order('created_at', { ascending: true })
+      );
 
       if (error) throw error;
       set({ transactions: data || [] });
@@ -215,10 +221,12 @@ fetchCurrentRegister: async () => {
     set({ isSubmitting: true, error: null });
     try {
       // Verificar se já existe um caixa aberto
-      const { data: openRegisters, error: checkError } = await supabase
-        .from('cash_registers')
-        .select('id')
-        .eq('status', 'open');
+      const { data: openRegisters, error: checkError } = await withRetry(() =>
+        supabase
+          .from('cash_registers')
+          .select('id')
+          .eq('status', 'open')
+      );
 
       if (checkError) throw checkError;
 
@@ -227,31 +235,35 @@ fetchCurrentRegister: async () => {
       }
 
       // Criar novo caixa
-      const { data: register, error: registerError } = await supabase
-        .from('cash_registers')
-        .insert({
-          opening_employee_id: (await supabase.auth.getUser()).data.user?.id,
-          initial_amount: initialAmount,
-          notes,
-          status: 'open'
-        })
-        .select()
-        .single();
+      const { data: register, error: registerError } = await withRetry(() =>
+        supabase
+          .from('cash_registers')
+          .insert({
+            opening_employee_id: (await supabase.auth.getUser()).data.user?.id,
+            initial_amount: initialAmount,
+            notes,
+            status: 'open'
+          })
+          .select()
+          .single()
+      );
 
       if (registerError) throw registerError;
 
       // Registrar transação de abertura
-      const { error: transactionError } = await supabase
-        .from('cash_register_transactions')
-        .insert({
-          cash_register_id: register.id,
-          employee_id: (await supabase.auth.getUser()).data.user?.id,
-          amount: initialAmount,
-          operation_type: 'open',
-          payment_method: 'cash',
-          description: 'Abertura de caixa',
-          category: 'deposit'
-        });
+      const { error: transactionError } = await withRetry(() =>
+        supabase
+          .from('cash_register_transactions')
+          .insert({
+            cash_register_id: register.id,
+            employee_id: (await supabase.auth.getUser()).data.user?.id,
+            amount: initialAmount,
+            operation_type: 'open',
+            payment_method: 'cash',
+            description: 'Abertura de caixa',
+            category: 'deposit'
+          })
+      );
 
       if (transactionError) throw transactionError;
 
@@ -286,34 +298,38 @@ fetchCurrentRegister: async () => {
       const differenceAmount = data.countedCash - expectedAmount;
 
       // Fechar caixa
-      const { error: updateError } = await supabase
-        .from('cash_registers')
-        .update({
-          closing_employee_id: (await supabase.auth.getUser()).data.user?.id,
-          closed_at: new Date().toISOString(),
-          final_amount: data.countedCash,
-          expected_amount: expectedAmount,
-          difference_amount: differenceAmount,
-          next_day_amount: data.nextDayAmount,
-          notes: data.notes,
-          status: 'closed'
-        })
-        .eq('id', currentRegister.id);
+      const { error: updateError } = await withRetry(() =>
+        supabase
+          .from('cash_registers')
+          .update({
+            closing_employee_id: (await supabase.auth.getUser()).data.user?.id,
+            closed_at: new Date().toISOString(),
+            final_amount: data.countedCash,
+            expected_amount: expectedAmount,
+            difference_amount: differenceAmount,
+            next_day_amount: data.nextDayAmount,
+            notes: data.notes,
+            status: 'closed'
+          })
+          .eq('id', currentRegister.id)
+      );
 
       if (updateError) throw updateError;
 
       // Registrar transação de fechamento
-      const { error: transactionError } = await supabase
-        .from('cash_register_transactions')
-        .insert({
-          cash_register_id: currentRegister.id,
-          employee_id: (await supabase.auth.getUser()).data.user?.id,
-          amount: data.countedCash,
-          operation_type: 'close',
-          payment_method: 'cash',
-          description: 'Fechamento de caixa',
-          category: 'adjustment'
-        });
+      const { error: transactionError } = await withRetry(() =>
+        supabase
+          .from('cash_register_transactions')
+          .insert({
+            cash_register_id: currentRegister.id,
+            employee_id: (await supabase.auth.getUser()).data.user?.id,
+            amount: data.countedCash,
+            operation_type: 'close',
+            payment_method: 'cash',
+            description: 'Fechamento de caixa',
+            category: 'adjustment'
+          })
+      );
 
       if (transactionError) throw transactionError;
 
@@ -335,11 +351,13 @@ fetchCurrentRegister: async () => {
     set({ isSubmitting: true, error: null });
     try {
       // Buscar o caixa para calcular a diferença
-      const { data: register, error: fetchError } = await supabase
-        .from('cash_registers')
-        .select('expected_amount')
-        .eq('id', data.id)
-        .single();
+      const { data: register, error: fetchError } = await withRetry(() =>
+        supabase
+          .from('cash_registers')
+          .select('expected_amount')
+          .eq('id', data.id)
+          .single()
+      );
 
       if (fetchError) throw fetchError;
 
@@ -347,15 +365,17 @@ fetchCurrentRegister: async () => {
       const differenceAmount = data.countedCash - (register.expected_amount || 0);
 
       // Atualizar caixa
-      const { error: updateError } = await supabase
-        .from('cash_registers')
-        .update({
-          final_amount: data.countedCash,
-          difference_amount: differenceAmount,
-          next_day_amount: data.nextDayAmount,
-          notes: data.notes
-        })
-        .eq('id', data.id);
+      const { error: updateError } = await withRetry(() =>
+        supabase
+          .from('cash_registers')
+          .update({
+            final_amount: data.countedCash,
+            difference_amount: differenceAmount,
+            next_day_amount: data.nextDayAmount,
+            notes: data.notes
+          })
+          .eq('id', data.id)
+      );
 
       if (updateError) throw updateError;
 
@@ -382,17 +402,19 @@ fetchCurrentRegister: async () => {
       }
 
       // Registrar transação de suprimento
-      const { error: transactionError } = await supabase
-        .from('cash_register_transactions')
-        .insert({
-          cash_register_id: currentRegister.id,
-          employee_id: (await supabase.auth.getUser()).data.user?.id,
-          amount,
-          operation_type: 'deposit',
-          payment_method: paymentMethod,
-          description,
-          category: 'deposit'
-        });
+      const { error: transactionError } = await withRetry(() =>
+        supabase
+          .from('cash_register_transactions')
+          .insert({
+            cash_register_id: currentRegister.id,
+            employee_id: (await supabase.auth.getUser()).data.user?.id,
+            amount,
+            operation_type: 'deposit',
+            payment_method: paymentMethod,
+            description,
+            category: 'deposit'
+          })
+      );
 
       if (transactionError) throw transactionError;
 
@@ -428,17 +450,19 @@ fetchCurrentRegister: async () => {
       }
 
       // Registrar transação de sangria
-      const { error: transactionError } = await supabase
-        .from('cash_register_transactions')
-        .insert({
-          cash_register_id: currentRegister.id,
-          employee_id: (await supabase.auth.getUser()).data.user?.id,
-          amount,
-          operation_type: 'withdrawal',
-          payment_method: 'cash',
-          description,
-          category: 'withdrawal'
-        });
+      const { error: transactionError } = await withRetry(() =>
+        supabase
+          .from('cash_register_transactions')
+          .insert({
+            cash_register_id: currentRegister.id,
+            employee_id: (await supabase.auth.getUser()).data.user?.id,
+            amount,
+            operation_type: 'withdrawal',
+            payment_method: 'cash',
+            description,
+            category: 'withdrawal'
+          })
+      );
 
       if (transactionError) throw transactionError;
 
@@ -465,27 +489,31 @@ fetchCurrentRegister: async () => {
       }
 
       // Buscar a transação original
-      const { data: transaction, error: fetchError } = await supabase
-        .from('cash_register_transactions')
-        .select('*')
-        .eq('id', data.transaction_id)
-        .single();
+      const { data: transaction, error: fetchError } = await withRetry(() =>
+        supabase
+          .from('cash_register_transactions')
+          .select('*')
+          .eq('id', data.transaction_id)
+          .single()
+      );
 
       if (fetchError) throw fetchError;
 
       // Registrar transação de cancelamento
-      const { error: transactionError } = await supabase
-        .from('cash_register_transactions')
-        .insert({
-          cash_register_id: currentRegister.id,
-          employee_id: (await supabase.auth.getUser()).data.user?.id,
-          amount: transaction.amount,
-          operation_type: 'payment', // Pagamento negativo
-          payment_method: transaction.payment_method,
-          description: `Cancelamento: ${data.cancellation_reason}`,
-          reference_id: transaction.id,
-          category: 'refund'
-        });
+      const { error: transactionError } = await withRetry(() =>
+        supabase
+          .from('cash_register_transactions')
+          .insert({
+            cash_register_id: currentRegister.id,
+            employee_id: (await supabase.auth.getUser()).data.user?.id,
+            amount: transaction.amount,
+            operation_type: 'payment',
+            payment_method: transaction.payment_method,
+            description: `Cancelamento: ${data.cancellation_reason}`,
+            reference_id: transaction.id,
+            category: 'refund'
+          })
+      );
 
       if (transactionError) throw transactionError;
 
@@ -511,19 +539,21 @@ fetchCurrentRegister: async () => {
       }
 
       // Criar transação retroativa
-      const { error: transactionError } = await supabase
-        .from('cash_register_transactions')
-        .insert({
-          cash_register_id: registerId,
-          employee_id: (await supabase.auth.getUser()).data.user?.id,
-          amount: data.amount,
-          operation_type: data.operation_type,
-          payment_method: data.payment_method,
-          description: data.description || 'Lançamento retroativo',
-          category: data.category,
-          created_at: data.transaction_date || new Date().toISOString(),
-          client_name: data.client_name
-        });
+      const { error: transactionError } = await withRetry(() =>
+        supabase
+          .from('cash_register_transactions')
+          .insert({
+            cash_register_id: registerId,
+            employee_id: (await supabase.auth.getUser()).data.user?.id,
+            amount: data.amount,
+            operation_type: data.operation_type,
+            payment_method: data.payment_method,
+            description: data.description || 'Lançamento retroativo',
+            category: data.category,
+            created_at: data.transaction_date || new Date().toISOString(),
+            client_name: data.client_name
+          })
+      );
 
       if (transactionError) throw transactionError;
 
@@ -546,11 +576,13 @@ fetchCurrentRegister: async () => {
       const dateStr = format(date, 'yyyy-MM-dd');
       
       // Buscar transações do dia
-      const { data: transactions, error } = await supabase
-        .from('cash_register_transactions')
-        .select('*')
-        .gte('created_at', `${dateStr}T00:00:00`)
-        .lte('created_at', `${dateStr}T23:59:59`);
+      const { data: transactions, error } = await withRetry(() =>
+        supabase
+          .from('cash_register_transactions')
+          .select('*')
+          .gte('created_at', `${dateStr}T00:00:00`)
+          .lte('created_at', `${dateStr}T23:59:59`)
+      );
 
       if (error) throw error;
       
@@ -719,10 +751,12 @@ export async function recordSaleInCashRegister(
     console.log('Transaction data to insert:', transactionData);
 
     // Registrar transação de venda
-    const { data: insertedData, error: transactionError } = await supabase
-      .from('cash_register_transactions')
-      .insert(transactionData)
-      .select();
+    const { data: insertedData, error: transactionError } = await withRetry(() =>
+      supabase
+        .from('cash_register_transactions')
+        .insert(transactionData)
+        .select()
+    );
 
     console.log('Insert result:', insertedData);
     console.log('Insert error:', transactionError);
