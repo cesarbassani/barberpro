@@ -120,7 +120,10 @@ fetchCurrentRegister: async () => {
         .eq('cash_register_id', currentRegister.id)
         .order('created_at', { ascending: false });
 
-      if (transactionsError) throw transactionsError;
+      if (transactionsError) {
+        console.error('Erro ao buscar transações:', transactionsError);
+        throw transactionsError;
+      }
       
       console.log('Transactions from cash_register_transactions:', transactions);
       
@@ -586,7 +589,12 @@ function calculateBalance(transactions: CashTransaction[]): CashBalance {
     
     // Determinar se é entrada ou saída
     const isInflow = ['open', 'sale', 'deposit'].includes(transaction.operation_type);
-    const value = isInflow ? amount : -amount;
+    const isOutflow = ['close', 'withdrawal', 'refund'].includes(transaction.operation_type);
+    
+    let value = amount;
+    if (isOutflow) {
+      value = -amount;
+    }
     
     // Atualizar saldo por método de pagamento
     switch (transaction.payment_method) {
@@ -637,7 +645,11 @@ function calculateMovements(transactions: CashTransaction[]): CashMovement[] {
     
     // Somar valores por categoria
     if (category in categories) {
-      categories[category] += amount;
+      if (['sale', 'deposit'].includes(transaction.operation_type)) {
+        categories[category] += amount;
+      } else if (['withdrawal', 'refund'].includes(transaction.operation_type)) {
+        categories[category] += amount;
+      }
     }
   });
 

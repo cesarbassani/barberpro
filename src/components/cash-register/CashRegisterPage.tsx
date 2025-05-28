@@ -90,7 +90,7 @@ export function CashRegisterPage() {
     fetchHistoryFn();
   }, [fetchOrders]);
 
-  // Debug - adicione após o useEffect existente
+  // Debug - log state for troubleshooting
   useEffect(() => {
     console.log('Current Register:', currentRegister);
     console.log('Transactions:', transactions);
@@ -99,15 +99,15 @@ export function CashRegisterPage() {
   }, [currentRegister, transactions, movements, currentBalance]);
 
   useEffect(() => {
-  // Auto-refresh a cada 30 segundos
-  const interval = setInterval(() => {
-    if (currentRegister) {
-      fetchCurrentRegister();
-    }
-  }, 30000);
+    // Auto-refresh a cada 30 segundos
+    const interval = setInterval(() => {
+      if (currentRegister) {
+        fetchCurrentRegister();
+      }
+    }, 30000);
 
-  return () => clearInterval(interval);
-}, [currentRegister]);
+    return () => clearInterval(interval);
+  }, [currentRegister]);
 
   const handleOpenCashRegister = async (initialAmount: number) => {
     try {
@@ -335,48 +335,6 @@ export function CashRegisterPage() {
                       <RefreshCw className="h-4 w-4 mr-2" />
                       Atualizar
                     </button>
-
-<button
-  onClick={async () => {
-    console.log('=== DEBUG CASH REGISTER ===');
-    
-    // 1. Verificar caixa atual
-    const { data: cashRegister } = await supabase
-      .from('cash_registers')
-      .select('*')
-      .eq('status', 'open')
-      .single();
-    console.log('Current cash register:', cashRegister);
-    
-    if (cashRegister) {
-      // 2. Buscar TODAS as transações deste caixa
-      const { data: allTransactions, error } = await supabase
-        .from('cash_register_transactions')
-        .select('*')
-        .eq('cash_register_id', cashRegister.id);
-      
-      console.log('All transactions for this register:', allTransactions);
-      console.log('Transaction count:', allTransactions?.length || 0);
-      console.log('Error (if any):', error);
-      
-      // 3. Verificar se há transações de venda
-      const sales = allTransactions?.filter(t => t.operation_type === 'sale') || [];
-      console.log('Sales transactions:', sales);
-      
-      // 4. Verificar estrutura da tabela
-      const { data: tableInfo } = await supabase
-        .from('cash_register_transactions')
-        .select('*')
-        .limit(1);
-      console.log('Table structure sample:', tableInfo);
-    }
-    
-    console.log('=== END DEBUG ===');
-  }}
-  className="px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
->
-  Debug DB
-</button>
                     <span className="tooltiptext">
                       {tooltips.refresh}
                     </span>
