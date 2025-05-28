@@ -612,7 +612,7 @@ export function CashRegisterPage() {
                             <span className="flex items-center">
                               {item.quantity}x {item.service?.name || item.product?.name || 'Item desconhecido'}
                               {item.is_loyalty_service && (
-                                <Crown className="h-3 w-3 ml-1 text-indigo-600\" title="Incluso no plano de fidelidade" />
+                                <Crown className="h-3 w-3 ml-1 text-indigo-600\" title=\"Incluso no plano de fidelidade" />
                               )}
                             </span>
                             <span className={`font-medium ${item.is_loyalty_service ? 'text-indigo-500' : ''}`}>
