@@ -234,12 +234,17 @@ export const useCashRegisterStore = create<CashRegisterState>((set, get) => ({
         throw new Error('Já existe um caixa aberto. Feche o caixa atual antes de abrir um novo.');
       }
 
+      // Get user ID first
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error('User not authenticated');
+
       // Criar novo caixa
       const { data: register, error: registerError } = await withRetry(() =>
         supabase
           .from('cash_registers')
           .insert({
-            opening_employee_id: (await supabase.auth.getUser()).data.user?.id,
+            opening_employee_id: user.id,
             initial_amount: initialAmount,
             notes,
             status: 'open'
@@ -256,7 +261,7 @@ export const useCashRegisterStore = create<CashRegisterState>((set, get) => ({
           .from('cash_register_transactions')
           .insert({
             cash_register_id: register.id,
-            employee_id: (await supabase.auth.getUser()).data.user?.id,
+            employee_id: user.id,
             amount: initialAmount,
             operation_type: 'open',
             payment_method: 'cash',
@@ -293,6 +298,11 @@ export const useCashRegisterStore = create<CashRegisterState>((set, get) => ({
         throw new Error('Não foi possível calcular o saldo atual');
       }
 
+      // Get user ID first
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error('User not authenticated');
+
       // Calcular diferença
       const expectedAmount = currentBalance.cash;
       const differenceAmount = data.countedCash - expectedAmount;
@@ -302,7 +312,7 @@ export const useCashRegisterStore = create<CashRegisterState>((set, get) => ({
         supabase
           .from('cash_registers')
           .update({
-            closing_employee_id: (await supabase.auth.getUser()).data.user?.id,
+            closing_employee_id: user.id,
             closed_at: new Date().toISOString(),
             final_amount: data.countedCash,
             expected_amount: expectedAmount,
@@ -322,7 +332,7 @@ export const useCashRegisterStore = create<CashRegisterState>((set, get) => ({
           .from('cash_register_transactions')
           .insert({
             cash_register_id: currentRegister.id,
-            employee_id: (await supabase.auth.getUser()).data.user?.id,
+            employee_id: user.id,
             amount: data.countedCash,
             operation_type: 'close',
             payment_method: 'cash',
@@ -401,13 +411,18 @@ export const useCashRegisterStore = create<CashRegisterState>((set, get) => ({
         throw new Error('Não há caixa aberto para registrar suprimento');
       }
 
+      // Get user ID first
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error('User not authenticated');
+
       // Registrar transação de suprimento
       const { error: transactionError } = await withRetry(() =>
         supabase
           .from('cash_register_transactions')
           .insert({
             cash_register_id: currentRegister.id,
-            employee_id: (await supabase.auth.getUser()).data.user?.id,
+            employee_id: user.id,
             amount,
             operation_type: 'deposit',
             payment_method: paymentMethod,
@@ -444,6 +459,11 @@ export const useCashRegisterStore = create<CashRegisterState>((set, get) => ({
         throw new Error('Não foi possível calcular o saldo atual');
       }
 
+      // Get user ID first
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error('User not authenticated');
+
       // Verificar se há saldo suficiente
       if (currentBalance.cash < amount) {
         throw new Error(`Saldo insuficiente. Disponível: R$ ${currentBalance.cash.toFixed(2)}`);
@@ -455,7 +475,7 @@ export const useCashRegisterStore = create<CashRegisterState>((set, get) => ({
           .from('cash_register_transactions')
           .insert({
             cash_register_id: currentRegister.id,
-            employee_id: (await supabase.auth.getUser()).data.user?.id,
+            employee_id: user.id,
             amount,
             operation_type: 'withdrawal',
             payment_method: 'cash',
@@ -488,6 +508,11 @@ export const useCashRegisterStore = create<CashRegisterState>((set, get) => ({
         throw new Error('Não há caixa aberto para processar cancelamento');
       }
 
+      // Get user ID first
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error('User not authenticated');
+
       // Buscar a transação original
       const { data: transaction, error: fetchError } = await withRetry(() =>
         supabase
@@ -505,7 +530,7 @@ export const useCashRegisterStore = create<CashRegisterState>((set, get) => ({
           .from('cash_register_transactions')
           .insert({
             cash_register_id: currentRegister.id,
-            employee_id: (await supabase.auth.getUser()).data.user?.id,
+            employee_id: user.id,
             amount: transaction.amount,
             operation_type: 'payment',
             payment_method: transaction.payment_method,
@@ -533,6 +558,11 @@ export const useCashRegisterStore = create<CashRegisterState>((set, get) => ({
   createRetroactiveTransaction: async (registerId: string, data: any) => {
     set({ isSubmitting: true, error: null });
     try {
+      // Get user ID first
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error('User not authenticated');
+
       // Validar dados
       if (!data.operation_type || !data.amount || !data.payment_method || !data.category) {
         throw new Error('Dados incompletos para o lançamento retroativo');
@@ -544,7 +574,7 @@ export const useCashRegisterStore = create<CashRegisterState>((set, get) => ({
           .from('cash_register_transactions')
           .insert({
             cash_register_id: registerId,
-            employee_id: (await supabase.auth.getUser()).data.user?.id,
+            employee_id: user.id,
             amount: data.amount,
             operation_type: data.operation_type,
             payment_method: data.payment_method,
@@ -725,20 +755,15 @@ export async function recordSaleInCashRegister(
       throw new Error('Não há caixa aberto para registrar venda');
     }
 
-    // Obter o usuário atual
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    console.log('User data:', userData);
-    console.log('User error:', userError);
-    
-    if (!userData.user) {
-      console.error('User not authenticated');
-      throw new Error('Usuário não autenticado');
-    }
+    // Get user ID first
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError) throw userError;
+    if (!user) throw new Error('User not authenticated');
 
     // Preparar dados da transação
     const transactionData = {
       cash_register_id: currentRegister.id,
-      employee_id: userData.user.id,
+      employee_id: user.id,
       amount,
       operation_type: 'sale',
       payment_method: paymentMethod,
