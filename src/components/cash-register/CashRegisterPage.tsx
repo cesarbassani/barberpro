@@ -338,6 +338,97 @@ export function CashRegisterPage() {
                     <span className="tooltiptext">
                       {tooltips.refresh}
                     </span>
+                    <button
+                      onClick={async () => {
+                        console.log('=== DETAILED CASH REGISTER DEBUG ===');
+                        
+                        try {
+                          // 1. Verificar caixa atual direto do banco
+                          const { data: cashRegister, error: cashError } = await supabase
+                            .from('cash_registers')
+                            .select('*')
+                            .eq('status', 'open')
+                            .single();
+                            
+                          console.log('1. Current cash register from DB:', cashRegister);
+                          console.log('   Error (if any):', cashError);
+                          
+                          if (cashRegister) {
+                            // 2. Buscar transações SEM joins
+                            const { data: rawTransactions, error: transError } = await supabase
+                              .from('cash_register_transactions')
+                              .select('*')
+                              .eq('cash_register_id', cashRegister.id)
+                              .order('created_at', { ascending: false });
+                              
+                            console.log('2. Raw transactions from DB:', rawTransactions);
+                            console.log('   Count:', rawTransactions?.length || 0);
+                            console.log('   Error (if any):', transError);
+                            
+                            // 3. Verificar primeira transação em detalhes
+                            if (rawTransactions && rawTransactions.length > 0) {
+                              console.log('3. First transaction details:', rawTransactions[0]);
+                              console.log('   All fields:', Object.keys(rawTransactions[0]));
+                            }
+                            
+                            // 4. Tentar buscar com join usando sintaxe diferente
+                            const { data: transWithJoin, error: joinError } = await supabase
+                              .from('cash_register_transactions')
+                              .select(`
+                                *,
+                                employee:employee_id (
+                                  full_name
+                                )
+                              `)
+                              .eq('cash_register_id', cashRegister.id)
+                              .limit(1);
+                              
+                            console.log('4. Transaction with join attempt:', transWithJoin);
+                            console.log('   Join error:', joinError);
+                            
+                            // 5. Verificar estrutura da tabela profiles
+                            const { data: profileSample } = await supabase
+                              .from('profiles')
+                              .select('*')
+                              .limit(1);
+                              
+                            console.log('5. Profile table sample:', profileSample);
+                            
+                            // 6. Verificar se employee_id existe nas transações
+                            if (rawTransactions && rawTransactions.length > 0) {
+                              const employeeIds = rawTransactions.map(t => t.employee_id).filter(Boolean);
+                              console.log('6. Employee IDs in transactions:', employeeIds);
+                              
+                              if (employeeIds.length > 0) {
+                                const { data: employees } = await supabase
+                                  .from('profiles')
+                                  .select('id, full_name')
+                                  .in('id', employeeIds);
+                                  
+                                console.log('7. Employees found:', employees);
+                              }
+                            }
+                          }
+                          
+                          // 8. Verificar estado atual do store
+                          const state = useCashRegisterStore.getState();
+                          console.log('8. Current store state:', {
+                            currentRegister: state.currentRegister,
+                            transactions: state.transactions,
+                            movements: state.movements,
+                            currentBalance: state.currentBalance
+                          });
+                          
+                        } catch (error) {
+                          console.error('Debug error:', error);
+                        }
+                        
+                        console.log('=== END DETAILED DEBUG ===');
+                      }}
+                      className="px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 text-sm"
+                    >
+                      Debug Detalhado
+                    </button>
                   </div>
                   <div className="tooltip">
                     <button
