@@ -20,7 +20,32 @@ export const supabase = createClient<Database>(
     auth: {
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: true
+      detectSessionInUrl: true,
+      storage: {
+        // Use local storage for session persistence
+        getItem: (key) => {
+          try {
+            return localStorage.getItem(key);
+          } catch (error) {
+            console.error('Error accessing localStorage:', error);
+            return null;
+          }
+        },
+        setItem: (key, value) => {
+          try {
+            localStorage.setItem(key, value);
+          } catch (error) {
+            console.error('Error setting localStorage:', error);
+          }
+        },
+        removeItem: (key) => {
+          try {
+            localStorage.removeItem(key);
+          } catch (error) {
+            console.error('Error removing from localStorage:', error);
+          }
+        }
+      }
     },
     global: {
       headers: {
@@ -34,7 +59,8 @@ export const supabase = createClient<Database>(
       
       return fetch(url, { 
         ...options,
-        signal: controller.signal
+        signal: controller.signal,
+        credentials: 'include' // Include credentials in requests
       }).finally(() => {
         clearTimeout(timeoutId);
       });
@@ -111,4 +137,41 @@ export const withRetry = async <T>(
   }
   
   throw lastError;
+};
+
+// Add function to check and refresh session
+export const checkAndRefreshSession = async () => {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('Error checking session:', error);
+      return null;
+    }
+
+    if (!session) {
+      return null;
+    }
+
+    // If session exists but is close to expiring, refresh it
+    const expiresAt = session?.expires_at ? new Date(session.expires_at * 1000) : null;
+    const now = new Date();
+    const timeUntilExpiry = expiresAt ? expiresAt.getTime() - now.getTime() : 0;
+
+    if (timeUntilExpiry < 600000) { // Refresh if less than 10 minutes until expiry
+      const { data: { session: newSession }, error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (refreshError) {
+        console.error('Error refreshing session:', refreshError);
+        return null;
+      }
+
+      return newSession;
+    }
+
+    return session;
+  } catch (error) {
+    console.error('Error in checkAndRefreshSession:', error);
+    return null;
+  }
 };
