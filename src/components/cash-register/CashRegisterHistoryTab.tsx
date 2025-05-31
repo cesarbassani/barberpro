@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useCashRegister } from '../../lib/cashRegisterStore';
 import { useAuth } from '../../lib/auth';
-import { format } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
   Calendar, 
@@ -48,11 +48,14 @@ export function CashRegisterHistoryTab({ onEditRegister, onCreateRetroactiveTran
     setStartDate(start);
     setEndDate(end);
     
-    fetchCashRegisterHistory(start, end);
+    fetchCashRegisterHistory(startOfDay(start), endOfDay(end));
   }, [fetchCashRegisterHistory]);
   
   const handleSearch = () => {
-    fetchCashRegisterHistory(startDate || undefined, endDate || undefined);
+    fetchCashRegisterHistory(
+      startDate ? startOfDay(startDate) : undefined,
+      endDate   ? endOfDay  (endDate)   : undefined
+    );
   };
   
   const handleToggleDetails = async (registerId: string) => {
@@ -91,9 +94,9 @@ export function CashRegisterHistoryTab({ onEditRegister, onCreateRetroactiveTran
               <input
                 type="date"
                 id="startDate"
-                value={startDate ? format(startDate, 'yyyy-MM-dd') : ''}
-                onChange={(e) => setStartDate(e.target.value ? new Date(e.target.value) : null)}
-                className="h-10 pl-[35px] block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                value={startDate ? startDate.toISOString().split('T')[0] : ''}
+                onChange={(e) => setStartDate(e.target.valueAsDate)}
+                className="h-10 pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
               />
             </div>
           </div>
@@ -109,9 +112,9 @@ export function CashRegisterHistoryTab({ onEditRegister, onCreateRetroactiveTran
               <input
                 type="date"
                 id="endDate"
-                value={endDate ? format(endDate, 'yyyy-MM-dd') : ''}
-                onChange={(e) => setEndDate(e.target.value ? new Date(e.target.value) : null)}
-                className="h-10 pl-[35px] block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                value={endDate ? endDate.toISOString().split('T')[0] : ''}
+                onChange={(e) => setEndDate(e.target.valueAsDate)}
+                className="h-10 pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
               />
             </div>
           </div>

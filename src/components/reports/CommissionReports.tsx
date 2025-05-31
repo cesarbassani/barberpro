@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useProfiles } from '../../lib/profiles';
-import { format, subDays, isAfter, isBefore, parseISO } from 'date-fns';
+import { format, subDays, isAfter, isBefore, startOfDay, endOfDay, isWithinInterval, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
   Calendar, 
@@ -137,26 +137,28 @@ export function CommissionReports() {
   const professionalCommissionData = React.useMemo(() => {
     // Filter transactions by date range and barber
     const filteredTransactions = transactions.filter(t => {
-      // Filter by date range
-      const transactionDate = new Date(t.created_at);
-      if (!isAfter(transactionDate, filterValues.startDate) || !isBefore(transactionDate, filterValues.endDate)) {
+      const txDate = parseISO(t.created_at);
+      const start  = startOfDay(filterValues.startDate);
+      const end    = endOfDay  (filterValues.endDate);
+  
+      // único filtro de data, inclusivo
+      if (!isWithinInterval(txDate, { start, end })) {
         return false;
       }
-      
-      // Filter by selected barber
+  
+      // filtrar por barbeiro
       if (filterValues.barberId !== 'all' && t.barber_id !== filterValues.barberId) {
         return false;
       }
-      
-      // Filter by search term
+  
+      // filtrar pelo termo de busca
       if (filterValues.searchTerm) {
-        const searchLower = filterValues.searchTerm.toLowerCase();
+        const term = filterValues.searchTerm.toLowerCase();
         const clientName = t.client?.full_name?.toLowerCase() || '';
         const barberName = t.barber?.full_name?.toLowerCase() || '';
-        
-        return clientName.includes(searchLower) || barberName.includes(searchLower);
+        return clientName.includes(term) || barberName.includes(term);
       }
-      
+  
       return true;
     });
 

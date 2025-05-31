@@ -730,9 +730,6 @@ export function OrderManagementReports() {
                         Cliente
                       </th>
                       <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Barbeiro
-                      </th>
-                      <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Itens
                       </th>
                       <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -771,11 +768,6 @@ export function OrderManagementReports() {
                             <div className="text-sm font-medium text-gray-900">
                               {order.client?.full_name || 'Cliente não encontrado'}
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {order.barber?.full_name || 'Não atribuído'}
                           </div>
                         </td>
                         <td className="px-4 py-4">

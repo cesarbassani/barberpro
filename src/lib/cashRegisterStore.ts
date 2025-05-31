@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from './supabase';
 import toast from 'react-hot-toast';
-import { format, isAfter, isBefore, set, isToday } from 'date-fns';
+import { format, startOfDay, endOfDay, isAfter, isBefore, set, isToday } from 'date-fns';
 import { useAuth } from './auth';
 
 // Types
@@ -580,11 +580,11 @@ export const useCashRegister = create<CashRegisterState>((set, get) => ({
 
       // Add date filters if provided
       if (startDate) {
-        query = query.gte('opened_at', format(startDate, 'yyyy-MM-dd'));
+        query = query.gte('opened_at', startOfDay(startDate).toISOString());
       }
       
       if (endDate) {
-        query = query.lte('opened_at', format(endDate, 'yyyy-MM-dd'));
+        query = query.lte('opened_at', endOfDay(endDate).toISOString());
       }
 
       const { data, error } = await query;
